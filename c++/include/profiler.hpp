@@ -55,14 +55,22 @@ struct Profiler {
         counters[key].push_back(value);
     }
 
-    Measurements_t get_measurements() {
+    Measurements_t get_measurements(const char units[] = "us") const {
         Measurements_t result;
-        auto oo_cpu_freq = 1.0 / cpu_freq;
+        float scale = 1.0f / cpu_freq;
+        if (strcmp(units, "ms") == 0) {
+            scale *= 1e3;
+        } else if (strcmp(units, "us") == 0) {
+            scale *= 1e6;
+        } else {
+            // return seconds
+        }
+
         for (const auto& kv : measurements) {
             std::vector<double> times;
             times.reserve(kv.second.size());
             for (const auto& cycles : kv.second) {
-                times.push_back(cycles * 1e3 * oo_cpu_freq); // Convert to milliseconds
+                times.push_back(cycles * scale); // Convert to microseconds
             }
             result[kv.first] = std::move(times);
         }
@@ -85,9 +93,7 @@ struct Profiler {
             start_cycles = Profiler::read_cycles();
         }
         ~Section() {
-            uint64_t end_cycles = Profiler::read_cycles();
-            double elapsed_ms = profiler.to_ms(end_cycles - start_cycles);
-            profiler.add_measurement(name, elapsed_ms);
+            profiler.add_measurement(name, Profiler::read_cycles() - start_cycles);
         }
     };
 
@@ -95,3 +101,14 @@ struct Profiler {
     std::map<std::string, std::vector<uint64_t>> measurements;
     std::map<std::string, std::vector<int32_t>> counters;
 };
+template <typename T>
+T median(std::vector<T> vec) {
+    if (vec.empty()) return T(0);
+    std::sort(vec.begin(), vec.end());
+    size_t n = vec.size();
+    if (n % 2 == 1) {
+        return vec[n / 2];
+    } else {
+        return (vec[n / 2 - 1] + vec[n / 2]) / T(2);
+    }
+}

@@ -4,6 +4,8 @@
 #include <memory>
 #include <array>
 #include <cassert>
+#include <type_traits>
+#include <cmath>
 
 namespace matrix {
 
@@ -58,17 +60,21 @@ struct Matrix {
     }
 
     static Matrix<T, N> zeros(Shape shape) {
-        return Matrix<T,N>::fill(shape, T(0));
+        return Matrix<T,N>::from_value(shape, T(0));
     }
 
     static Matrix<T, N> ones(Shape shape) {
-        return Matrix<T,N>::fill(shape, T(1));
+        return Matrix<T,N>::from_value(shape, T(1));
     }
 
-    static Matrix<T, N> fill(Shape shape, T value) {
+    static Matrix<T, N> from_value(Shape shape, T value) {
         auto m = Matrix<T,N>(shape);
         std::fill_n(m.data.get(), m.total_size(), value);
         return m;
+    }
+
+    void fill(T value){
+        std::fill_n(data.get(), total_size(), value);
     }
 
     Matrix(Matrix&& other) noexcept 
@@ -89,6 +95,26 @@ struct Matrix {
     Matrix(const Matrix&) = delete;
 
     Matrix& operator=(const Matrix&) = delete;
+
+    bool operator==(const Matrix& other) const {
+        if (shape != other.shape) return false;
+        if constexpr (std::is_floating_point_v<T>) {
+            constexpr T eps = static_cast<T>(1e-6); // or configurable
+            return std::equal(
+                data.get(), data.get() + total_size(), other.data.get(),
+                [eps](T a, T b) { return std::fabs(a - b) <= eps; }
+            );
+        } else {
+            // exact comparison for integers, bool, etc.
+            return std::equal(
+                data.get(), data.get() + total_size(), other.data.get()
+            );
+        }
+    }
+
+    bool operator!=(const Matrix& other) const {
+        return !(*this == other);
+    }
 
     Matrix copy() const {
         Matrix<T, N> m(shape);
@@ -185,6 +211,7 @@ auto empty(Dims... dims)
 }
 
 template <typename T, typename... Dims>
+requires (std::conjunction_v<std::is_integral<Dims>...>)
 auto zeros(Dims... dims) 
 {
     constexpr size_t N = sizeof...(Dims);
@@ -205,14 +232,43 @@ auto from_value(T value, Dims... dims)
 {
     constexpr size_t N = sizeof...(Dims);
     using Mat = Matrix<T, N>;
-    return Mat::fill(typename Mat::Shape{static_cast<uint16_t>(dims)...}, value);
+    return Mat::from_value(typename Mat::Shape{static_cast<uint16_t>(dims)...}, value);
 }
 
-template <typename T, typename... Dims>
-auto randu(Dims... dims);
+template <typename T, int N>
+Matrix<T, N> similar(const Matrix<T, N>& mat) {
+    return Matrix<T, N>::empty(mat.get_shape());
+}
+
+template <typename T, typename Shape>
+auto zeros(const Shape& shape) {
+    constexpr size_t N = std::tuple_size_v<Shape>;
+    return Matrix<T, N>::zeros(shape);
+}
+
+template <typename T>
+void randu(T* data, size_t size);
 
 template <typename T, typename... Dims>
-auto randn(Dims... dims);
+auto randu(Dims... dims) {
+    constexpr size_t N = sizeof...(Dims);
+    using Mat = Matrix<T, N>;
+    auto m = Mat::empty(typename Mat::Shape{static_cast<uint16_t>(dims)...});
+    randu(m.get_data(), m.total_size());
+    return m;
+}
+
+template <typename T>
+void randn(T* data, size_t size);
+
+template <typename T, typename... Dims>
+auto randn(Dims... dims) {
+    constexpr size_t N = sizeof...(Dims);
+    using Mat = Matrix<T, N>;
+    auto m = Mat::empty(typename Mat::Shape{static_cast<uint16_t>(dims)...});
+    randn(m.get_data(), m.total_size());
+    return m;
+}
 
 template <typename T>
 struct View<T, 1> {
@@ -244,5 +300,26 @@ struct View {
         return v;
     }
 };
+
+
+template <typename T, int N>
+bool almost_equal(const Matrix<T,N>& a, const Matrix<T,N>& b, T abs_eps = static_cast<T>(1e-6), T rel_eps = static_cast<T>(1e-5)) {
+    if (a.get_shape() != b.get_shape()) return false;
+    if constexpr (std::is_floating_point_v<T>) {
+        return std::equal(
+            a.get_data(), a.get_data() + a.total_size(), b.get_data(),
+            [abs_eps, rel_eps](T a, T b) {
+                const T diff = std::fabs(a - b);
+                const T tol = abs_eps + rel_eps * std::max(std::fabs(a), std::fabs(b));
+                return diff <= tol;
+            }
+        );
+    } else {
+        // exact comparison for integers, bool, etc.
+        return std::equal(
+            a.get(), a.get() + a.total_size(), b.get()
+        );
+    }
+}
 
 } // namespace matrix

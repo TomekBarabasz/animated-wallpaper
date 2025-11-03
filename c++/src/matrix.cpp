@@ -1,14 +1,21 @@
-#include <matrix2.hpp>
+#include <matrix.hpp>
 #include <vector>
 #include "XoshiroCpp.hpp"
 #include <random>
 #include <algorithm>
 #include <cstdint>  // For uint32_t
 
+#ifdef MSVC_VER
+#include <immintrin.h>
+#endif
+
 namespace {
 uint64_t gen_seed() 
 {
-#if defined(__x86_64__) || defined(_M_X64)
+#ifdef MSVC_VER
+    // Windows specific
+    return __rdtsc();
+#elif defined(__x86_64__) || defined(_M_X64)
     unsigned lo, hi;
     __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
     return ((uint64_t)hi << 32) | lo;
@@ -17,7 +24,7 @@ uint64_t gen_seed()
     asm volatile("mrs %0, cntvct_el0" : "=r"(val));
     return val;
 #else
-// fallback
+    // fallback
     return std::chrono::steady_clock::now().time_since_epoch().count();
 #endif
 }
@@ -25,32 +32,24 @@ uint64_t gen_seed()
 
 using XoshiroRNG = XoshiroCpp::Xoshiro256PlusPlus;
 
-template <typename T>
-Matrix<T> Matrix<T>::randu(size_t r, size_t c, size_t seed)
+namespace matrix
 {
-    Matrix<T> m(r, c);
-    using namespace XoshiroCpp;
-    
-    XoshiroRNG rng(seed != 0 ? seed : gen_seed());
-
+template <>
+void randu<float>(float* data, size_t size)
+{
+    XoshiroRNG rng(gen_seed());
     auto gen_float = [&]() -> float {
         uint32_t u = rng() >> 8;  // 24-bit mantissa for float [0,1)
         return (u + 0.5f) * (1.0f / (1u << 24));
     };
-    std::generate(m.data, m.data + r * c, gen_float);
-    
-    return m;
+    std::generate(data, data + size, gen_float);
 }
 
-template <typename T>
-Matrix<T> Matrix<T>::randn(size_t r, size_t c, size_t seed)
+template <>
+void randn<float>(float* data, size_t size)
 {
-    Matrix<T> m(r, c);
-
-    XoshiroRNG rng(seed != 0 ? seed : gen_seed());
-
-    std::normal_distribution<T> dist(0, 1);
-    std::generate(m.data, m.data + r * c, [&]() { return dist(rng); });
-    
-    return m;
+    XoshiroRNG rng(gen_seed());
+    std::normal_distribution<float> dist(0, 1);
+    std::generate(data, data + size, [&]() { return dist(rng); });
+}
 }

@@ -50,16 +50,17 @@ target_include_directories(gray-scott-lib PRIVATE
     ${xoshiro_SOURCE_DIR}
     )
 target_compile_options(gray-scott-lib PRIVATE
-    $<$<CONFIG:Release>:-O3 -march=native -ffast-math> -fPIC -mavx2
+    $<$<CONFIG:Release>:-O3 -march=native -ffast-math> -fPIC -mavx2 -mfma
 )
 
 add_executable(gray-scott
     src/main.cpp
+    src/conv2d.cpp
 )
 target_include_directories(gray-scott PRIVATE include)
 target_link_libraries(gray-scott PRIVATE gray-scott-lib eigen)
 target_compile_options(gray-scott PRIVATE
-    $<$<CONFIG:Release>:-O3 -march=native -ffast-math> -mavx2
+    $<$<CONFIG:Release>:-O3 -march=native -ffast-math> -mavx2 -mfma
 )
 
 add_executable(gs_benchmark
@@ -68,5 +69,5 @@ add_executable(gs_benchmark
 target_include_directories(gs_benchmark PRIVATE include)
 target_link_libraries(gs_benchmark PRIVATE gray-scott-lib benchmark::benchmark)
 target_compile_options(gs_benchmark PRIVATE
-    $<$<CONFIG:Release>:-O3 -march=native -ffast-math> -mavx2
+    $<$<CONFIG:Release>:-O3 -march=native -ffast-math> -mavx2 -mfma
 )

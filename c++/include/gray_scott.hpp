@@ -2,6 +2,7 @@
 #include <utility>
 #include <optional>
 #include <memory>
+#include <string>
 
 namespace GrayScott {
 

@@ -2,6 +2,7 @@
 #include <matrix.hpp>
 //#include <gray_scott.hpp>
 #include <Eigen/Dense>
+#include <profiler.hpp>
 
 using namespace matrix;
 
@@ -65,12 +66,55 @@ void test_eigen()
     mat.setZero();
 }
 
+void conv3x3_f32(const Matrix<float,2>& input, const Matrix<float,2>& kernel, Matrix<float,2>& output);
+void conv3x3_f32_avx2(const Matrix<float,2>& input, const Matrix<float,2>& kernel, Matrix<float,2>& output);
+void test_conv()
+{
+    size_t n = 10;
+    auto A = matrix::randu<float>(n,n);
+    auto B1 = matrix::zeros<float>(A.get_shape());
+    auto B2 = matrix::zeros<float>(n,n);
+    auto K = matrix::zeros<float>(3,3);
+    float kernel_data[] = {
+        0.05f, .20f, 0.05f,
+        .02f, -1.0f, .2f,
+        0.05f, .2f, 0.05f
+    };
+    memcpy(K.get_data(), kernel_data, sizeof(kernel_data));
+
+    conv3x3_f32(A, K, B1);
+    conv3x3_f32_avx2(A, K, B2);
+
+    const auto is_same = B1 == B2;
+    const auto almost_equal = matrix::almost_equal(B1,B2);
+
+    constexpr size_t N_RUNS = 1000;
+    Profiler p;
+    { 
+        Profiler::Section section(p, "conv3x3_f32");
+        for (int i=0;i<N_RUNS;++i) {
+            conv3x3_f32(A, K, B1);
+        }
+    }
+    { 
+        Profiler::Section section(p, "conv3x3_f32_avx2");
+        for (int i=0;i<N_RUNS;++i) {
+            conv3x3_f32_avx2(A, K, B2);
+        }
+    }
+    auto measurements = p.get_measurements("us");
+    for (const auto& [k,v] : measurements) {
+        std::cout << k << ": " << median(v)/N_RUNS<< " us over " << N_RUNS << " runs" << std::endl;
+    }
+}
+
 int main(int argc, char* argv[]) 
 {
     std::cout << "Gray-Scott Simulation" << std::endl;
 
     test_matrix();
     test_eigen();
+    test_conv();
 
     return 0;
 }
