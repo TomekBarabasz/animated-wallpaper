@@ -48,9 +48,6 @@ add_library(gray-scott-lib STATIC
 target_include_directories(gray-scott-lib PRIVATE 
     include
     ${xoshiro_SOURCE_DIR}
-    )
-target_compile_options(gray-scott-lib PRIVATE
-    $<$<CONFIG:Release>:-O3 -march=native -ffast-math> -fPIC -mavx2 -mfma
 )
 
 add_executable(gray-scott
@@ -59,15 +56,24 @@ add_executable(gray-scott
 )
 target_include_directories(gray-scott PRIVATE include)
 target_link_libraries(gray-scott PRIVATE gray-scott-lib eigen)
-target_compile_options(gray-scott PRIVATE
-    $<$<CONFIG:Release>:-O3 -march=native -ffast-math> -mavx2 -mfma
-)
 
 add_executable(gs_benchmark
     src/benchmark.cpp
 )
 target_include_directories(gs_benchmark PRIVATE include)
 target_link_libraries(gs_benchmark PRIVATE gray-scott-lib benchmark::benchmark)
-target_compile_options(gs_benchmark PRIVATE
-    $<$<CONFIG:Release>:-O3 -march=native -ffast-math> -mavx2 -mfma
-)
+
+
+if (MSVC)
+    set(optons
+        $<$<CONFIG:Release>:/O2 /fp:fast /arch:AVX2>
+    )
+else()
+    set(optons
+        $<$<CONFIG:Release>:-O3 -march=native -ffast-math -mavx2 -mfma>
+    )
+endif()
+
+target_compile_options(gray-scott-lib PRIVATE ${options} )
+target_compile_options(gray-scott PRIVATE ${options} )
+target_compile_options(gs_benchmark PRIVATE ${options} )

@@ -12,8 +12,7 @@
 namespace {
 uint64_t gen_seed() 
 {
-#ifdef MSVC_VER
-    // Windows specific
+#ifdef _MSC_VER
     return __rdtsc();
 #elif defined(__x86_64__) || defined(_M_X64)
     unsigned lo, hi;

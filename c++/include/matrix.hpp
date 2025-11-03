@@ -7,6 +7,15 @@
 #include <type_traits>
 #include <cmath>
 
+#ifdef _MSC_VER
+  #include <malloc.h>
+  #define _aligned_alloc_(alignment, size) _aligned_malloc(size, alignment)
+  #define _aligned_free_(ptr) _aligned_free(ptr)
+#else
+  #define _aligned_alloc_(alignment, size) std::aligned_alloc(alignment, size)
+  #define _aligned_free_(ptr) std::free(ptr)
+#endif
+
 namespace matrix {
 
 template <typename T, std::size_t N>
@@ -29,7 +38,7 @@ struct Matrix {
     }
 
     void allocate() {
-        data.reset(static_cast<T*>(std::aligned_alloc(64, total_bytes())));
+        data.reset(static_cast<T*>(_aligned_alloc_(64, total_bytes())));
     }
 
     std::array<std::size_t, N> make_row_major_strides(const Shape& shape) const {
@@ -195,7 +204,7 @@ struct Matrix {
 protected:
     struct Deleter {
         void operator()(T* ptr) {
-            std::free(ptr);
+            _aligned_free_(ptr);
         }
     };
     Shape shape;

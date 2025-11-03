@@ -15,7 +15,9 @@ struct Profiler {
     Profiler(double cpu_freq_) : cpu_freq(cpu_freq_) {}
 
     static uint64_t read_cycles() {
-    #if defined(__x86_64__) || defined(_M_X64)
+    #ifdef _MSC_VER
+        return __rdtsc();
+    #elif defined(__x86_64__) || defined(_M_X64)
         unsigned lo, hi;
         __asm__ __volatile__("rdtsc" : "=a"(lo), "=d"(hi));
         return ((uint64_t)hi << 32) | lo;
@@ -57,7 +59,7 @@ struct Profiler {
 
     Measurements_t get_measurements(const char units[] = "us") const {
         Measurements_t result;
-        float scale = 1.0f / cpu_freq;
+        auto scale = 1.0 / cpu_freq;
         if (strcmp(units, "ms") == 0) {
             scale *= 1e3;
         } else if (strcmp(units, "us") == 0) {

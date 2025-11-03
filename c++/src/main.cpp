@@ -88,6 +88,9 @@ void test_conv()
     const auto is_same = B1 == B2;
     const auto almost_equal = matrix::almost_equal(B1,B2);
 
+    std::cout << "conv3x3_f32 scalar vs avx : is_same :" << (is_same ? "YES":"NO") 
+              << " is almost equal : " << (almost_equal ? "YES":"NO") << std::endl;
+    
     constexpr size_t N_RUNS = 1000;
     Profiler p;
     { 
