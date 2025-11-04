@@ -5,12 +5,14 @@ edition = "2024"
 
 [dependencies]
 winit = "=0.30.3"
-wgpu  = "=0.20.1"
+wgpu  = "27.0.0"
 pollster = "0.3"
 bytemuck = { version = "1.16", features = ["derive"] }
 windows = { version = "=0.58.0", features = [
   "Win32_Foundation",
   "Win32_UI_WindowsAndMessaging",
 ] }
-
+env_logger = "0.10"
+log = "0.4"
+anyhow = "1.0"
 

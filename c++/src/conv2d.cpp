@@ -27,9 +27,6 @@ void conv3x3_f32(const Matrix<float,2>& input, const Matrix<float,2>& kernel, Ma
 
 void conv3x3_f32_avx2(const Matrix<float,2>& input, const Matrix<float,2>& kernel, Matrix<float,2>& output) 
 {
-    const auto n_rows = input.get_shape()[0];
-    const auto n_cols = input.get_shape()[1];
-
     auto inp = input.view();
     auto outp = output.view();
 
@@ -107,26 +104,4 @@ void conv3x3_f32_avx2(const Matrix<float,2>& input, const Matrix<float,2>& kerne
     }
 }
 
-template <typename Matrix>
-void conv2d_avx(const Matrix& input, const Matrix& kernel, Matrix& output) 
-{
-    const auto n_rows = input.get_shape()[0];
-    const auto n_cols = input.get_shape()[1];
-
-    auto inp = input.view();
-    auto outp = output.view();
-    auto kern = kernel.view();
-
-    for (unsigned i = 1; i < n_rows - 1; ++i) {
-        for (unsigned j = 1; j < n_cols - 1; ++j) {
-            float sum = 0.0f;
-            for (int ki = -1; ki <= 1; ++ki) {
-                for (int kj = -1; kj <= 1; ++kj) {
-                    sum += inp[i + ki][j + kj] * kern[ki + 1][kj + 1];
-                }
-            }
-            outp[i][j] = sum;
-        }
-    }
-}
-}
+} //namespace matrix::ops

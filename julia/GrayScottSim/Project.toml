@@ -1,0 +1,10 @@
+name = "GrayScottSim"
+uuid = "721ed7be-b15a-424e-89e4-f427bcb159e0"
+authors = ["Tomek Barabasz <tomek.barabasz@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+ArgParse = "c7e460c6-2fb9-53a9-8c5b-16f535851c63"
+GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+ImageFiltering = "6a3955dd-da59-5b1f-98d4-e7296123deb5"
+LoopVectorization = "bdcacae8-1622-11e9-2a5c-532679323890"
