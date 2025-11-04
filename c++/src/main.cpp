@@ -1,5 +1,6 @@
 #include <iostream>
 #include <matrix.hpp>
+#include <matrix_ops.hpp>
 //#include <gray_scott.hpp>
 #include <Eigen/Dense>
 #include <profiler.hpp>
@@ -66,15 +67,12 @@ void test_eigen()
     mat.setZero();
 }
 
-void conv3x3_f32(const Matrix<float,2>& input, const Matrix<float,2>& kernel, Matrix<float,2>& output);
-void conv3x3_f32_avx2(const Matrix<float,2>& input, const Matrix<float,2>& kernel, Matrix<float,2>& output);
-void test_conv()
+void test_conv(size_t n=10, size_t n_runs=100)
 {
-    size_t n = 10;
-    auto A = matrix::randu<float>(n,n);
-    auto B1 = matrix::zeros<float>(A.get_shape());
-    auto B2 = matrix::zeros<float>(n,n);
-    auto K = matrix::zeros<float>(3,3);
+    auto A = randu<float>(n,n);
+    auto B1 = zeros<float>(A.get_shape());
+    auto B2 = zeros<float>(n,n);
+    auto K = zeros<float>(3,3);
     float kernel_data[] = {
         0.05f, .20f, 0.05f,
         .02f, -1.0f, .2f,
@@ -82,8 +80,8 @@ void test_conv()
     };
     memcpy(K.get_data(), kernel_data, sizeof(kernel_data));
 
-    conv3x3_f32(A, K, B1);
-    conv3x3_f32_avx2(A, K, B2);
+    ops::conv3x3_f32(A, K, B1);
+    ops::conv3x3_f32_avx2(A, K, B2);
 
     const auto is_same = B1 == B2;
     const auto almost_equal = matrix::almost_equal(B1,B2);
@@ -91,23 +89,22 @@ void test_conv()
     std::cout << "conv3x3_f32 scalar vs avx : is_same :" << (is_same ? "YES":"NO") 
               << " is almost equal : " << (almost_equal ? "YES":"NO") << std::endl;
     
-    constexpr size_t N_RUNS = 1000;
     Profiler p;
     { 
         Profiler::Section section(p, "conv3x3_f32");
-        for (int i=0;i<N_RUNS;++i) {
-            conv3x3_f32(A, K, B1);
+        for (int i=0;i<n_runs;++i) {
+            ops::conv3x3_f32(A, K, B1);
         }
     }
     { 
         Profiler::Section section(p, "conv3x3_f32_avx2");
-        for (int i=0;i<N_RUNS;++i) {
-            conv3x3_f32_avx2(A, K, B2);
+        for (int i=0;i<n_runs;++i) {
+            ops::conv3x3_f32_avx2(A, K, B2);
         }
     }
     auto measurements = p.get_measurements("us");
     for (const auto& [k,v] : measurements) {
-        std::cout << k << ": " << median(v)/N_RUNS<< " us over " << N_RUNS << " runs" << std::endl;
+        std::cout << k << ": " << median(v)/n_runs<< " us over " << n_runs << " runs" << std::endl;
     }
 }
 
@@ -117,7 +114,10 @@ int main(int argc, char* argv[])
 
     test_matrix();
     test_eigen();
-    test_conv();
+
+    size_t n = argc > 1 ? std::stoul(argv[1]) : 10;
+    size_t n_run = argc > 2 ? std::stoul(argv[2]) : 100;
+    test_conv(n,n_run);
 
     return 0;
 }

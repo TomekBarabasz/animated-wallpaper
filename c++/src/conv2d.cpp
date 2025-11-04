@@ -2,6 +2,7 @@
 #include <immintrin.h>
 
 using matrix::Matrix;
+namespace matrix::ops {
 void conv3x3_f32(const Matrix<float,2>& input, const Matrix<float,2>& kernel, Matrix<float,2>& output)
 {
     const auto n_rows = input.get_shape()[0];
@@ -127,4 +128,5 @@ void conv2d_avx(const Matrix& input, const Matrix& kernel, Matrix& output)
             outp[i][j] = sum;
         }
     }
+}
 }

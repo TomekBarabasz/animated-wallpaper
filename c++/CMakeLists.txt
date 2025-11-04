@@ -34,16 +34,10 @@ FetchContent_MakeAvailable(benchmark)
 FetchContent_MakeAvailable(xoshiro)
 FetchContent_MakeAvailable(eigen)
 
-# not needed as eigen is header-only ?
-target_compile_options(eigen INTERFACE -mavx2)
-
-# Compiler flags for performance
-set(CMAKE_CXX_FLAGS_RELEASE "-O3 -DNDEBUG -march=native")
-set(CMAKE_CXX_FLAGS_DEBUG "-g -O0 -DDEBUG")
-
 add_library(gray-scott-lib STATIC
     src/gray_scott.cpp
     src/matrix.cpp
+    src/conv2d.cpp
 )
 target_include_directories(gray-scott-lib PRIVATE 
     include
@@ -52,7 +46,6 @@ target_include_directories(gray-scott-lib PRIVATE
 
 add_executable(gray-scott
     src/main.cpp
-    src/conv2d.cpp
 )
 target_include_directories(gray-scott PRIVATE include)
 target_link_libraries(gray-scott PRIVATE gray-scott-lib eigen)
@@ -65,15 +58,17 @@ target_link_libraries(gs_benchmark PRIVATE gray-scott-lib benchmark::benchmark)
 
 
 if (MSVC)
-    set(optons
-        $<$<CONFIG:Release>:/O2 /fp:fast /arch:AVX2>
+    set(compile_options
+        $<$<CONFIG:Release>:/O2 /fp:fast /arch:AVX2 /DNDEBUG>
+        $<$<CONFIG:Debug>:/Od /Zi /W4 /arch:AVX2>
     )
 else()
-    set(optons
-        $<$<CONFIG:Release>:-O3 -march=native -ffast-math -mavx2 -mfma>
+    set(compile_options
+        $<$<CONFIG:Release>:-O3 -march=native -ffast-math -mavx2 -mfma -DNDEBUG>
+        $<$<CONFIG:Debug>:-g -O0 -Wall -Wextra -Wpedantic -mavx2 -mfma>
     )
 endif()
 
-target_compile_options(gray-scott-lib PRIVATE ${options} )
-target_compile_options(gray-scott PRIVATE ${options} )
-target_compile_options(gs_benchmark PRIVATE ${options} )
+target_compile_options(gray-scott-lib PRIVATE ${compile_options})
+target_compile_options(gray-scott PRIVATE ${compile_options} )
+target_compile_options(gs_benchmark PRIVATE ${compile_options} )
